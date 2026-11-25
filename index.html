@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bangla Flashcard Maker — পড়া, মনে রাখা, আবার পড়া</title>
+<style>
+  :root{
+    --paper:#f7f0dd; --paper2:#fdf8ea; --card:#fffdf4; --ink:#2e2620; --ink-soft:#6b5d4f;
+    --amber:#d97706; --amber-dark:#b45309; --amber-soft:#fde8c8; --green:#2f7d4f;
+    --red:#b3402e; --line:#e3d5b8; --shadow:0 6px 18px rgba(90,64,20,.16);
+  }
+  *{box-sizing:border-box; margin:0; padding:0;}
+  html{scrollbar-gutter:stable;}
+  body{
+    font-family:"Segoe UI","Noto Sans Bengali",system-ui,-apple-system,sans-serif;
+    background:var(--paper);
+    background-image:radial-gradient(rgba(120,85,30,.06) 1px, transparent 1px);
+    background-size:22px 22px;
+    color:var(--ink); min-height:100vh;
+  }
+  .wrap{max-width:880px; margin:0 auto; padding:0 16px 64px;}
+  header{padding:28px 0 8px; text-align:center;}
+  header .desk{font-size:13px; letter-spacing:.28em; text-transform:uppercase; color:var(--amber-dark); font-weight:700;}
+  h1{font-size:clamp(28px,6vw,44px); line-height:1.15; margin:8px 0 6px;}
+  h1 span{color:var(--amber-dark);}
+  header p{color:var(--ink-soft); font-size:15px;}
+  .toolbar{display:flex; gap:8px; flex-wrap:wrap; justify-content:center; margin:18px 0 6px;}
+  button{font-family:inherit; cursor:pointer; border:none; border-radius:10px; font-size:15px; font-weight:600;}
+  .btn-amber{background:var(--amber); color:#fff; padding:11px 18px; box-shadow:0 3px 0 var(--amber-dark);}
+  .btn-amber:active{transform:translateY(2px); box-shadow:none;}
+  .btn-ghost{background:var(--paper2); color:var(--ink); border:1.5px solid var(--line); padding:10px 16px;}
+  .btn-green{background:var(--green); color:#fff; padding:10px 16px;}
+  .btn-red{background:#fff; color:var(--red); border:1.5px solid #e8b7ad; padding:8px 12px; font-size:13px;}
+  .btn-small{padding:7px 12px; font-size:13px;}
+  input,textarea,select{font-family:inherit; font-size:15px; padding:11px 12px; border:1.5px solid var(--line);
+    border-radius:10px; background:#fff; color:var(--ink); width:100%;}
+  input:focus,textarea:focus{outline:2px solid var(--amber); outline-offset:1px;}
+  .panel{background:var(--paper2); border:1.5px solid var(--line); border-radius:16px; padding:18px; margin-top:18px; box-shadow:var(--shadow);}
+  .panel h2{font-size:19px; margin-bottom:4px;}
+  .panel .sub{color:var(--ink-soft); font-size:14px; margin-bottom:12px;}
+  .row{display:flex; gap:10px; flex-wrap:wrap;}
+  .row>*{flex:1 1 160px;}
+  .deck-grid{display:grid; grid-template-columns:repeat(auto-fill,minmax(240px,1fr)); gap:14px; margin-top:12px;}
+  .deck{background:var(--card); border:1.5px solid var(--line); border-radius:14px; padding:16px;
+    box-shadow:var(--shadow); position:relative; animation:dealIn .35s ease both;}
+  @keyframes dealIn{from{opacity:0; transform:translateY(10px) rotate(-1deg);} to{opacity:1; transform:none;}}
+  .deck h3{font-size:18px; margin-bottom:2px; word-break:break-word;}
+  .deck .count{color:var(--ink-soft); font-size:13px; margin-bottom:10px;}
+  .bar{height:10px; background:#efe3c2; border-radius:99px; overflow:hidden; margin:8px 0 4px;}
+  .bar>i{display:block; height:100%; background:linear-gradient(90deg,var(--amber),#f59e0b); border-radius:99px; transition:width .5s ease;}
+  .mastery{font-size:13px; font-weight:700; color:var(--amber-dark);}
+  .deck .actions{display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;}
+  .empty{color:var(--ink-soft); text-align:center; padding:22px 8px; font-size:15px;}
+  /* ---- study ---- */
+  .study-top{display:flex; justify-content:space-between; align-items:center; gap:10px; flex-wrap:wrap; margin-bottom:6px;}
+  .study-top .left{font-weight:700; font-size:17px;}
+  .study-top .right{color:var(--ink-soft); font-size:14px;}
+  .flip-scene{perspective:1200px; margin:18px auto 8px; max-width:560px;}
+  .flashcard{position:relative; width:100%; min-height:300px; cursor:pointer; transform-style:preserve-3d; transition:transform .6s cubic-bezier(.4,.1,.2,1);}
+  .flashcard.flipped{transform:rotateY(180deg);}
+  .face{position:absolute; inset:0; backface-visibility:hidden; -webkit-backface-visibility:hidden;
+    background:var(--card); border:1.5px solid var(--line); border-radius:16px; box-shadow:var(--shadow);
+    padding:28px 22px; display:flex; flex-direction:column; justify-content:center; align-items:center; text-align:center; gap:10px;
+    background-image:repeating-linear-gradient(transparent, transparent 30px, rgba(217,119,6,.14) 30px, rgba(217,119,6,.14) 31px);}
+  .face .tag{font-size:12px; letter-spacing:.22em; text-transform:uppercase; color:var(--amber-dark); font-weight:700;}
+  .face .txt{font-size:clamp(20px,5vw,27px); line-height:1.5; font-weight:600; word-break:break-word;}
+  .face.back{transform:rotateY(180deg); background:#fff8e1;}
+  .flip-hint{text-align:center; color:var(--ink-soft); font-size:13px; margin-bottom:14px;}
+  .mark-row{display:flex; gap:12px; justify-content:center; flex-wrap:wrap;}
+  .mark-row button{padding:13px 26px; font-size:16px; border-radius:12px;}
+  #btn-known{background:var(--green); color:#fff; box-shadow:0 3px 0 #1e5c36;}
+  #btn-unknown{background:var(--red); color:#fff; box-shadow:0 3px 0 #7c2a1e;}
+  #btn-known:active,#btn-unknown:active{transform:translateY(2px); box-shadow:none;}
+  .shuffle-note{text-align:center; color:var(--ink-soft); font-size:13px; margin-top:12px;}
+  .flashcard.shuffling{animation:shuffle .45s ease;}
+  @keyframes shuffle{0%{transform:translateX(0) rotate(0);} 25%{transform:translateX(-10px) rotate(-2deg);} 75%{transform:translateX(10px) rotate(2deg);} 100%{transform:translateX(0) rotate(0);}}
+  /* ---- summary ---- */
+  .summary-grid{display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin:14px 0;}
+  .stat{background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:14px 8px; text-align:center;}
+  .stat b{display:block; font-size:28px; color:var(--amber-dark);}
+  .stat span{font-size:13px; color:var(--ink-soft);}
+  .chart-row{display:grid; grid-template-columns:130px 1fr 44px; gap:10px; align-items:center; margin:9px 0; font-size:14px;}
+  .chart-row .nm{font-weight:600; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;}
+  .chart-row .pct{text-align:right; font-weight:700; color:var(--amber-dark);}
+  /* ---- manage ---- */
+  .card-item{background:#fff; border:1.5px solid var(--line); border-radius:12px; padding:12px 14px; margin-top:10px;}
+  .card-item .fb{font-size:15px; line-height:1.5; word-break:break-word;}
+  .card-item .fb b{color:var(--amber-dark);}
+  .card-item .known-badge{font-size:12px; font-weight:700; color:var(--green); background:#e4f3e8; border-radius:99px; padding:2px 9px; margin-left:6px;}
+  .card-item .actions{display:flex; gap:8px; margin-top:8px; flex-wrap:wrap;}
+  .edit-box{margin-top:10px; display:none;}
+  .edit-box.open{display:block;}
+  .edit-box textarea{min-height:64px; margin-bottom:8px; resize:vertical;}
+  .hidden{display:none !important;}
+  footer{text-align:center; color:var(--ink-soft); font-size:13px; margin-top:36px; padding-top:16px; border-top:1.5px dashed var(--line);}
+  #TESTOUT{display:none; white-space:pre-wrap; word-break:break-word;}
+  @media (max-width:420px){
+    .summary-grid{grid-template-columns:repeat(3,1fr);}
+    .chart-row{grid-template-columns:96px 1fr 40px;}
+    .flashcard{min-height:260px;}
+  }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="desk">Study Desk</div>
+    <h1>Bangla <span>Flashcard</span> Maker</h1>
+    <p>ডেক বানাও, কার্ড উল্টাও, মনে রাখো — ভুল কার্ড আবার আসবেই।</p>
+  </header>
+
+  <div class="toolbar">
+    <button class="btn-amber" id="nav-decks">আমার ডেক</button>
+    <button class="btn-ghost" id="nav-stats">অগ্রগতি</button>
+  </div>
+
+  <!-- ============ DECKS VIEW ============ -->
+  <section id="view-decks">
+    <div class="panel">
+      <h2>নতুন ডেক বানাও</h2>
+      <p class="sub">যেমন: C Programming, English Vocabulary, ইতিহাস…</p>
+      <div class="row">
+        <input id="deck-name-input" type="text" placeholder="ডেকের নাম লেখো…" maxlength="60" aria-label="Deck name">
+        <button class="btn-amber" id="create-deck-btn" style="flex:0 0 auto;">+ ডেক বানাও</button>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>আমার ডেকগুলো</h2>
+      <p class="sub">পড়তে চাইলে “পড়া শুরু করো”, কার্ড বদলাতে “কার্ড দেখো”।</p>
+      <div class="deck-grid" id="deck-list"></div>
+      <div class="empty hidden" id="no-decks">এখনো কোনো ডেক নেই — উপরে একটা বানিয়ে শুরু করো।</div>
+    </div>
+
+    <div class="panel" id="stats-panel">
+      <h2>অগ্রগতি — প্রতি ডেকে দক্ষতা</h2>
+      <p class="sub">সবুজ মানে কার্ডটা “জানি” হিসেবে চিহ্নিত হয়েছে।</p>
+      <div id="mastery-chart"></div>
+    </div>
+  </section>
+
+  <!-- ============ STUDY VIEW ============ -->
+  <section id="view-study" class="hidden">
+    <div class="panel">
+      <div class="study-top">
+        <span class="left" id="study-deck-name"></span>
+        <span class="right" id="study-progress"></span>
+      </div>
+      <div class="bar"><i id="study-bar" style="width:0%"></i></div>
+      <div class="flip-scene">
+        <div class="flashcard" id="flashcard" role="button" tabindex="0" aria-label="Flashcard — flip করতে ক্লিক করো">
+          <div class="face front"><span class="tag">প্রশ্ন</span><div class="txt" id="card-front"></div></div>
+          <div class="face back"><span class="tag">উত্তর</span><div class="txt" id="card-back"></div></div>
+        </div>
+      </div>
+      <p class="flip-hint">কার্ডে ক্লিক করলেই উল্টাবে — উত্তর দেখে নিজেকে যাচাই করো।</p>
+      <div class="mark-row">
+        <button id="btn-unknown">✕ জানি না</button>
+        <button id="btn-known">✓ জানি</button>
+      </div>
+      <p class="shuffle-note" id="shuffle-note"></p>
+      <div class="row" style="margin-top:16px;">
+        <button class="btn-ghost" id="end-session-btn">সেশন শেষ করো</button>
+        <button class="btn-ghost" id="back-decks-btn">ডেকে ফিরে যাও</button>
+      </div>
+    </div>
+
+    <div class="panel hidden" id="session-summary">
+      <h2>সেশন শেষ — ফলাফল</h2>
+      <p class="sub" id="summary-deck"></p>
+      <div class="summary-grid">
+        <div class="stat"><b id="sum-correct">0</b><span>সঠিক (জানি)</span></div>
+        <div class="stat"><b id="sum-wrong">0</b><span>ভুল (জানি না)</span></div>
+        <div class="stat"><b id="sum-accuracy">0%</b><span>Accuracy</span></div>
+      </div>
+      <p class="sub" id="summary-note"></p>
+      <div class="row">
+        <button class="btn-amber" id="again-btn">আবার পড়ো</button>
+        <button class="btn-ghost" id="summary-back-btn">ডেকে ফিরে যাও</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- ============ MANAGE VIEW ============ -->
+  <section id="view-manage" class="hidden">
+    <div class="panel">
+      <div class="study-top">
+        <span class="left" id="manage-deck-name"></span>
+        <button class="btn-ghost btn-small" id="manage-back-btn">← ডেকে ফিরে যাও</button>
+      </div>
+      <p class="sub">ডেকের নাম বদলাও, কার্ড যোগ করো / বদলাও / মুছে ফেলো।</p>
+      <div class="row" style="margin-bottom:10px;">
+        <input id="rename-input" type="text" maxlength="60" aria-label="Rename deck">
+        <button class="btn-ghost" id="rename-btn" style="flex:0 0 auto;">নাম বদলাও</button>
+      </div>
+      <div class="row">
+        <button class="btn-ghost" id="export-btn">⬇ JSON Export</button>
+        <label class="btn-ghost" style="text-align:center; padding:10px 16px; font-weight:600; cursor:pointer;">⬆ JSON Import
+          <input type="file" id="import-file" accept=".json,application/json" class="hidden">
+        </label>
+      </div>
+    </div>
+
+    <div class="panel">
+      <h2>নতুন কার্ড যোগ করো</h2>
+      <p class="sub">সামনে প্রশ্ন, পেছনে উত্তর — বাংলা বা English, যেটা খুশি।</p>
+      <textarea id="card-front-input" placeholder="সামনে (Front) — যেমন: Pointer কী?" aria-label="Card front"></textarea>
+      <textarea id="card-back-input" placeholder="পেছনে (Back) — যেমন: Variable-এর memory address ধারণকারী variable" aria-label="Card back"></textarea>
+      <button class="btn-amber" id="add-card-btn">+ কার্ড যোগ করো</button>
+    </div>
+
+    <div class="panel">
+      <h2>এই ডেকের কার্ডগুলো</h2>
+      <div id="card-list"></div>
+      <div class="empty hidden" id="no-cards">এই ডেকে এখনো কোনো কার্ড নেই।</div>
+    </div>
+  </section>
+
+  <footer>Built by Nafiz Bin Azad · তোমার পড়া, তোমার ফোনেই থাকে — কোনো সার্ভার নেই</footer>
+  <div id="TESTOUT" aria-hidden="true"></div>
+</div>
+
+<script>
+"use strict";
+/* ---------- storage ---------- */
+var LS_KEY = "fcmk_decks";
+function uid(){ return "id" + Date.now().toString(36) + Math.random().toString(36).slice(2,8); }
+function loadDecks(){
+  try{
+    var raw = localStorage.getItem(LS_KEY);
+    if(!raw) return null;
+    var d = JSON.parse(raw);
+    if(!Array.isArray(d)) return null;
+    return d;
+  }catch(e){ return null; }
+}
+function saveDecks(){ localStorage.setItem(LS_KEY, JSON.stringify(decks)); }
+function seedDecks(){
+  return [{
+    id: uid(), name: "C Programming (Bangla)", cards: [
+      {id: uid(), front: "Pointer কী?", back: "Variable-এর memory address ধারণকারী variable। int *p; দিয়ে declare করা হয়।", known: false},
+      {id: uid(), front: "int a[5]; — এতে কয়টা element?", back: "৫টা, index 0–4। a[5] লিখলে array-র বাইরে যাওয়া হয় (out of bounds)।", known: false},
+      {id: uid(), front: "printf() কোন header file-এ থাকে?", back: "stdio.h — Standard Input/Output header।", known: false},
+      {id: uid(), front: "& operator কী করে?", back: "Variable-এর memory address দেয়। যেমন: &a মানে a-র address।", known: false},
+      {id: uid(), front: "*p মানে কী?", back: "Pointer p যে address ধরে আছে, সেই জায়গায় রাখা value।", known: false},
+      {id: uid(), front: "C-তে string কীভাবে শেষ হয়?", back: "Null character '\\0' দিয়ে। তাই \"abc\" মেমোরিতে ৪ byte নেয়।", known: false},
+      {id: uid(), front: "for loop-এর তিনটা অংশ কী?", back: "Initialization; condition; increment/decrement — যেমন for(i=0; i<5; i++)।", known: false},
+      {id: uid(), front: "malloc() কী করে?", back: "Heap থেকে নির্দিষ্ট size-এর memory allocate করে, আর তার pointer return করে।", known: false}
+    ]
+  }];
+}
+var decks = loadDecks();
+if(!decks){ decks = seedDecks(); saveDecks(); }
+
+var currentDeckId = null;
+var lastStudyDeckId = null;
+var session = null; // {deckId, queue:[cardId], pos, correct, wrong, total}
+
+function getDeck(id){ for(var i=0;i<decks.length;i++) if(decks[i].id===id) return decks[i]; return null; }
+function mastery(deck){
+  if(!deck.cards.length) return 0;
+  var k = deck.cards.filter(function(c){ return c.known; }).length;
+  return Math.round(k / deck.cards.length * 100);
+}
+function esc(s){ return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+
+/* ---------- views ---------- */
+function show(view){
+  ["view-decks","view-study","view-manage"].forEach(function(v){
+    document.getElementById(v).classList.toggle("hidden", v!==view);
+  });
+  window.scrollTo(0,0);
+}
+function renderDecks(){
+  var list = document.getElementById("deck-list");
+  document.getElementById("no-decks").classList.toggle("hidden", decks.length>0);
+  list.innerHTML = decks.map(function(d){
+    var m = mastery(d);
+    return '<div class="deck" data-deck="'+d.id+'">'
+      + '<h3>'+esc(d.name)+'</h3>'
+      + '<div class="count">'+d.cards.length+' টা কার্ড · '+d.cards.filter(function(c){return c.known;}).length+' টা জানা</div>'
+      + '<div class="bar"><i style="width:'+m+'%"></i></div>'
+      + '<div class="mastery">দক্ষতা: '+m+'%</div>'
+      + '<div class="actions">'
+      + '<button class="btn-green btn-small" data-act="study">পড়া শুরু করো</button>'
+      + '<button class="btn-ghost btn-small" data-act="manage">কার্ড দেখো</button>'
+      + '<button class="btn-red" data-act="delete">মুছে ফেলো</button>'
+      + '</div></div>';
+  }).join("");
+  renderChart();
+}
+function renderChart(){
+  var el = document.getElementById("mastery-chart");
+  if(!decks.length){ el.innerHTML = '<div class="empty">কোনো ডেক নেই — চার্ট এখানে আসবে।</div>'; return; }
+  el.innerHTML = decks.map(function(d){
+    var m = mastery(d);
+    return '<div class="chart-row"><span class="nm" title="'+esc(d.name)+'">'+esc(d.name)+'</span>'
+      + '<span class="bar" style="margin:0;"><i style="width:'+m+'%"></i></span>'
+      + '<span class="pct">'+m+'%</span></div>';
+  }).join("");
+}
+
+/* ---------- study session ---------- */
+function shuffle(arr){
+  for(var i=arr.length-1;i>0;i--){ var j=Math.floor(Math.random()*(i+1)); var t=arr[i]; arr[i]=arr[j]; arr[j]=t; }
+  return arr;
+}
+function startSession(deckId){
+  var deck = getDeck(deckId);
+  if(!deck || !deck.cards.length){ alert("এই ডেকে কোনো কার্ড নেই — আগে কার্ড যোগ করো।"); return; }
+  session = { deckId: deckId, queue: shuffle(deck.cards.map(function(c){return c.id;})), pos: 0, correct: 0, wrong: 0, total: deck.cards.length };
+  lastStudyDeckId = deckId;
+  document.getElementById("session-summary").classList.add("hidden");
+  document.getElementById("study-deck-name").textContent = deck.name;
+  document.getElementById("shuffle-note").textContent = "কার্ডগুলো shuffle করা হয়েছে — ভুল কার্ড আবার আসবে।";
+  show("view-study");
+  showCard(true);
+}
+function currentCard(){
+  if(!session) return null;
+  var deck = getDeck(session.deckId);
+  if(!deck) return null;
+  for(var i=0;i<deck.cards.length;i++) if(deck.cards[i].id===session.queue[session.pos]) return deck.cards[i];
+  return null;
+}
+function showCard(first){
+  var card = currentCard();
+  var fc = document.getElementById("flashcard");
+  if(!card){ endSession(); return; }
+  fc.classList.remove("flipped");
+  if(!first){ fc.classList.remove("shuffling"); void fc.offsetWidth; fc.classList.add("shuffling"); }
+  document.getElementById("card-front").textContent = card.front;
+  document.getElementById("card-back").textContent = card.back;
+  var done = session.pos; // cards already answered this pass
+  document.getElementById("study-progress").textContent = "কার্ড " + (done+1) + " / " + session.queue.length;
+  document.getElementById("study-bar").style.width = Math.round(done/session.queue.length*100) + "%";
+}
+function mark(known){
+  var card = currentCard();
+  if(!card) return;
+  var deck = getDeck(session.deckId);
+  if(known){
+    session.correct++;
+    card.known = true;
+  }else{
+    session.wrong++;
+    card.known = false;
+    // Recur: put the card back later in this session's queue (at least 2 cards later if possible)
+    var reinsertAt = Math.min(session.pos + 3, session.queue.length);
+    session.queue.splice(reinsertAt, 0, card.id);
+  }
+  saveDecks();
+  session.pos++;
+  if(session.pos >= session.queue.length){ endSession(); } else { showCard(false); }
+}
+function endSession(){
+  if(!session) return;
+  var deck = getDeck(session.deckId);
+  var total = session.correct + session.wrong;
+  var acc = total ? Math.round(session.correct/total*100) : 0;
+  document.getElementById("sum-correct").textContent = session.correct;
+  document.getElementById("sum-wrong").textContent = session.wrong;
+  document.getElementById("sum-accuracy").textContent = acc + "%";
+  document.getElementById("summary-deck").textContent = deck ? ("ডেক: " + deck.name) : "";
+  document.getElementById("summary-note").textContent =
+    acc === 100 ? "দারুণ! সব কার্ড জানা হয়ে গেছে।"
+    : acc >= 70 ? "ভালো হচ্ছে! ভুল কার্ডগুলো আবার পড়ে নাও।"
+    : "চিন্তা নেই — ভুল কার্ডগুলোই আসল পড়া। আবার চেষ্টা করো।";
+  document.getElementById("session-summary").classList.remove("hidden");
+  document.getElementById("study-bar").style.width = "100%";
+  document.getElementById("study-progress").textContent = "সেশন শেষ";
+  renderDecks();
+  session = null;
+}
+
+/* ---------- manage ---------- */
+function openManage(deckId){
+  var deck = getDeck(deckId);
+  if(!deck) return;
+  currentDeckId = deckId;
+  document.getElementById("manage-deck-name").textContent = deck.name;
+  document.getElementById("rename-input").value = deck.name;
+  document.getElementById("card-front-input").value = "";
+  document.getElementById("card-back-input").value = "";
+  renderCardList();
+  show("view-manage");
+}
+function renderCardList(){
+  var deck = getDeck(currentDeckId);
+  if(!deck) return;
+  var list = document.getElementById("card-list");
+  document.getElementById("no-cards").classList.toggle("hidden", deck.cards.length>0);
+  list.innerHTML = deck.cards.map(function(c){
+    return '<div class="card-item" data-card="'+c.id+'">'
+      + '<div class="fb"><b>সামনে:</b> '+esc(c.front)+(c.known?'<span class="known-badge">জানি</span>':'')+'</div>'
+      + '<div class="fb"><b>পেছনে:</b> '+esc(c.back)+'</div>'
+      + '<div class="actions">'
+      + '<button class="btn-ghost btn-small" data-act="edit">বদলাও</button>'
+      + '<button class="btn-red" data-act="delcard">মুছে ফেলো</button>'
+      + '</div>'
+      + '<div class="edit-box"><textarea class="edit-front" aria-label="Edit front">'+esc(c.front)+'</textarea>'
+      + '<textarea class="edit-back" aria-label="Edit back">'+esc(c.back)+'</textarea>'
+      + '<button class="btn-amber btn-small" data-act="save">সংরক্ষণ করো</button></div>'
+      + '</div>';
+  }).join("");
+}
+
+/* ---------- deck actions ---------- */
+function createDeck(name){
+  name = (name||"").trim();
+  if(!name){ alert("ডেকের নাম লেখো।"); return null; }
+  var d = {id: uid(), name: name, cards: []};
+  decks.push(d); saveDecks(); renderDecks();
+  return d;
+}
+
+/* ---------- events ---------- */
+document.getElementById("create-deck-btn").addEventListener("click", function(){
+  var d = createDeck(document.getElementById("deck-name-input").value);
+  if(d){ document.getElementById("deck-name-input").value = ""; }
+});
+document.getElementById("deck-name-input").addEventListener("keydown", function(e){
+  if(e.key==="Enter"){ document.getElementById("create-deck-btn").click(); }
+});
+document.getElementById("deck-list").addEventListener("click", function(e){
+  var btn = e.target.closest("button[data-act]");
+  if(!btn) return;
+  var deckEl = e.target.closest(".deck");
+  var id = deckEl.getAttribute("data-deck");
+  var deck = getDeck(id);
+  if(btn.getAttribute("data-act")==="study"){ startSession(id); }
+  else if(btn.getAttribute("data-act")==="manage"){ openManage(id); }
+  else if(btn.getAttribute("data-act")==="delete"){
+    if(confirm("“"+deck.name+"” ডেকটা মুছে ফেলবো? সব কার্ড চলে যাবে।")){
+      decks = decks.filter(function(d){ return d.id!==id; });
+      saveDecks(); renderDecks();
+    }
+  }
+});
+document.getElementById("nav-decks").addEventListener("click", function(){ renderDecks(); show("view-decks"); });
+document.getElementById("nav-stats").addEventListener("click", function(){
+  renderDecks(); show("view-decks");
+  document.getElementById("stats-panel").scrollIntoView({behavior:"smooth"});
+});
+document.getElementById("flashcard").addEventListener("click", function(){ this.classList.toggle("flipped"); });
+document.getElementById("flashcard").addEventListener("keydown", function(e){
+  if(e.key==="Enter" || e.key===" "){ e.preventDefault(); this.classList.toggle("flipped"); }
+});
+document.getElementById("btn-known").addEventListener("click", function(){ if(session) mark(true); });
+document.getElementById("btn-unknown").addEventListener("click", function(){ if(session) mark(false); });
+document.getElementById("end-session-btn").addEventListener("click", function(){ endSession(); });
+document.getElementById("back-decks-btn").addEventListener("click", function(){ session=null; renderDecks(); show("view-decks"); });
+document.getElementById("again-btn").addEventListener("click", function(){ if(lastStudyDeckId) startSession(lastStudyDeckId); });
+document.getElementById("summary-back-btn").addEventListener("click", function(){ renderDecks(); show("view-decks"); });
+document.getElementById("manage-back-btn").addEventListener("click", function(){ renderDecks(); show("view-decks"); });
+document.getElementById("rename-btn").addEventListener("click", function(){
+  var deck = getDeck(currentDeckId); if(!deck) return;
+  var name = document.getElementById("rename-input").value.trim();
+  if(!name){ alert("নাম খালি রাখা যাবে না।"); return; }
+  deck.name = name; saveDecks();
+  document.getElementById("manage-deck-name").textContent = name;
+  renderDecks();
+});
+document.getElementById("add-card-btn").addEventListener("click", function(){
+  var deck = getDeck(currentDeckId); if(!deck) return;
+  var f = document.getElementById("card-front-input").value.trim();
+  var b = document.getElementById("card-back-input").value.trim();
+  if(!f || !b){ alert("সামনে আর পেছনে — দুটোই লেখো।"); return; }
+  deck.cards.push({id: uid(), front: f, back: b, known: false});
+  saveDecks(); renderCardList(); renderDecks();
+  document.getElementById("card-front-input").value = "";
+  document.getElementById("card-back-input").value = "";
+  document.getElementById("card-front-input").focus();
+});
+document.getElementById("card-list").addEventListener("click", function(e){
+  var btn = e.target.closest("button[data-act]");
+  if(!btn) return;
+  var item = e.target.closest(".card-item");
+  var cid = item.getAttribute("data-card");
+  var deck = getDeck(currentDeckId); if(!deck) return;
+  var act = btn.getAttribute("data-act");
+  if(act==="delcard"){
+    if(confirm("এই কার্ডটা মুছে ফেলবো?")){
+      deck.cards = deck.cards.filter(function(c){ return c.id!==cid; });
+      saveDecks(); renderCardList(); renderDecks();
+    }
+  }else if(act==="edit"){
+    item.querySelector(".edit-box").classList.toggle("open");
+  }else if(act==="save"){
+    var f = item.querySelector(".edit-front").value.trim();
+    var b = item.querySelector(".edit-back").value.trim();
+    if(!f || !b){ alert("সামনে আর পেছনে — দুটোই লেখো।"); return; }
+    for(var i=0;i<deck.cards.length;i++) if(deck.cards[i].id===cid){ deck.cards[i].front=f; deck.cards[i].back=b; }
+    saveDecks(); renderCardList(); renderDecks();
+  }
+});
+document.getElementById("export-btn").addEventListener("click", function(){
+  var deck = getDeck(currentDeckId); if(!deck) return;
+  var blob = new Blob([JSON.stringify(deck, null, 2)], {type:"application/json"});
+  var a = document.createElement("a");
+  a.href = URL.createObjectURL(blob);
+  a.download = deck.name.replace(/[^\w\-]+/g,"-") + ".json";
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); }, 1000);
+});
+document.getElementById("import-file").addEventListener("change", function(e){
+  var file = e.target.files && e.target.files[0];
+  if(!file) return;
+  var reader = new FileReader();
+  reader.onload = function(){
+    try{
+      var d = JSON.parse(reader.result);
+      if(!d || typeof d.name!=="string" || !Array.isArray(d.cards)) throw new Error("bad file");
+      d.id = uid();
+      d.cards = d.cards.filter(function(c){ return c && typeof c.front==="string" && typeof c.back==="string"; })
+        .map(function(c){ return {id: uid(), front: c.front, back: c.back, known: !!c.known}; });
+      decks.push(d); saveDecks(); renderDecks(); openManage(d.id);
+      alert("“"+d.name+"” ডেক import হয়েছে ("+d.cards.length+" টা কার্ড)।");
+    }catch(err){ alert("এই JSON ফাইলটা ডেক হিসেবে পড়া যায়নি।"); }
+  };
+  reader.readAsText(file);
+  e.target.value = "";
+});
+
+renderDecks();
+
+/* ---------- self-test (only with ?selftest=...) ---------- */
+function testOut(msg){
+  var el = document.getElementById("TESTOUT");
+  el.style.display = "block";
+  el.textContent += msg + "\n";
+}
+window.addEventListener("error", function(e){ testOut("JSERROR: " + (e.message||e.error)); });
+function sleep(ms){ return new Promise(function(r){ setTimeout(r, ms); }); }
+function click(el){ el.dispatchEvent(new MouseEvent("click", {bubbles:true, cancelable:true})); }
+async function runSelfTest(mode){
+  var results = [];
+  function check(name, ok, extra){ results.push((ok?"PASS":"FAIL")+" "+name+(extra!==undefined?" ["+extra+"]":"")); }
+  try{
+    if(mode==="setup"){
+      localStorage.clear();
+      decks = seedDecks(); saveDecks(); renderDecks();
+      // seed check
+      var seed = decks[0];
+      check("seed-deck-8-cards", seed && seed.cards.length===8, seed?seed.cards.length:0);
+      check("seed-deck-name", seed && seed.name==="C Programming (Bangla)", seed?seed.name:"");
+      // create deck via real UI
+      document.getElementById("deck-name-input").value = "Test Deck";
+      click(document.getElementById("create-deck-btn"));
+      await sleep(50);
+      var td = decks[decks.length-1];
+      check("create-deck-ui", td && td.name==="Test Deck", td?td.name:"");
+      // add 2 cards via real UI
+      openManage(td.id);
+      document.getElementById("card-front-input").value = "Test Q1";
+      document.getElementById("card-back-input").value = "Test A1";
+      click(document.getElementById("add-card-btn"));
+      document.getElementById("card-front-input").value = "Test Q2";
+      document.getElementById("card-back-input").value = "Test A2";
+      click(document.getElementById("add-card-btn"));
+      await sleep(50);
+      check("add-cards-ui", td.cards.length===2, td.cards.length);
+      // quiz: mark first card wrong, verify it recurs in-session
+      startSession(td.id);
+      await sleep(50);
+      var firstFront = document.getElementById("card-front").textContent;
+      click(document.getElementById("flashcard")); // flip
+      await sleep(50);
+      check("flip-3d-class", document.getElementById("flashcard").classList.contains("flipped"));
+      click(document.getElementById("btn-unknown")); // wrong
+      await sleep(50);
+      var qLenAfterWrong = session ? session.queue.length : -1;
+      check("wrong-recurs-queue-grows", qLenAfterWrong===3, "queue="+qLenAfterWrong);
+      // answer remaining: keep marking known until session ends; count appearances of first card
+      var seenFirst = 1, guard = 0;
+      while(session && guard < 10){
+        guard++;
+        var f = document.getElementById("card-front").textContent;
+        if(f===firstFront) seenFirst++;
+        click(document.getElementById("btn-known"));
+        await sleep(30);
+      }
+      check("wrong-card-recurred", seenFirst>=2, "seen="+seenFirst);
+      check("session-ended", session===null);
+      check("summary-visible", !document.getElementById("session-summary").classList.contains("hidden"));
+      var acc = document.getElementById("sum-accuracy").textContent;
+      // marks: 1 wrong + 2 known (2 cards, first seen twice: once wrong, once known) = 2/3 = 67%
+      check("accuracy-math", acc==="67%", "acc="+acc+" correct="+document.getElementById("sum-correct").textContent+" wrong="+document.getElementById("sum-wrong").textContent);
+      check("mastery-100-after-known", mastery(td)===100, mastery(td)+"%");
+      check("no-h-overflow-360", document.documentElement.scrollWidth<=360, "scrollWidth="+document.documentElement.scrollWidth);
+      check("localstorage-key", (localStorage.getItem(LS_KEY)||"").indexOf("Test Deck")>=0);
+      testOut("SETUP-DONE");
+    } else if(mode==="verify"){
+      var d2 = loadDecks();
+      var td2 = d2 ? d2[d2.length-1] : null;
+      check("persist-deck-across-reload", td2 && td2.name==="Test Deck", td2?td2.name:"");
+      check("persist-cards", td2 && td2.cards.length===2, td2?td2.cards.length:0);
+      check("persist-mastery", td2 && mastery(td2)===100, td2?mastery(td2):"?");
+      check("persist-seed", d2 && d2[0] && d2[0].cards.length===8, d2?d2.length:0);
+      check("no-h-overflow-360", document.documentElement.scrollWidth<=360, "scrollWidth="+document.documentElement.scrollWidth);
+      testOut("VERIFY-DONE");
+      // restore clean seed state for the real user
+      localStorage.clear(); decks = seedDecks(); saveDecks(); renderDecks();
+    }
+  }catch(err){ testOut("SELFTEST-EXCEPTION: " + err.message); }
+  results.forEach(function(r){ testOut(r); });
+  testOut("SELFTEST-COMPLETE mode=" + mode);
+}
+(function(){
+  var m = location.search.match(/selftest=(setup|verify)/);
+  if(m){ setTimeout(function(){ runSelfTest(m[1]); }, 150); }
+})();
+</script>
+</body>
+</html>
